@@ -1,0 +1,43 @@
+name: MRGE Weekly US Stock Analysis
+
+on:
+  workflow_dispatch:
+
+  schedule:
+    # JST 日曜21:30 = UTC 日曜12:30
+    - cron: "30 12 * * SUN"
+
+permissions:
+  contents: write
+
+jobs:
+  run-mrge:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Run MRGE
+        env:
+          LINE_CHANNEL_ACCESS_TOKEN: ${{ secrets.LINE_CHANNEL_ACCESS_TOKEN }}
+          LINE_USER_ID: ${{ secrets.LINE_USER_ID }}
+        run: |
+          python mrge.py
+
+      - name: Commit result files
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add data/*.csv || true
+          git commit -m "Update MRGE results" || echo "No changes to commit"
+          git push || true
